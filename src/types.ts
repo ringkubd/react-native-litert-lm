@@ -12,7 +12,7 @@ export type LiteRTLMModelConfig = {
   /**
    * Absolute path to the `.task` model file on the device.
    *
-   * Example: `/data/user/0/com.example.app/files/gemma.task`
+   * Example: `/data/user/0/com.example.app/files/gemma.litertlm`
    *
    * For bundled assets, use `expo-file-system` or `react-native-fs` to
    * copy the file to a writable location first.
