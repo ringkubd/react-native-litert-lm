@@ -400,7 +400,7 @@ npx expo run:android
 
 ## License
 
-MIT © [Arafat Hossain](https://github.com/ringkubd)
+MIT © [MD. ANWAR JAHID](https://github.com/ringkubd)
 
 ---
 
