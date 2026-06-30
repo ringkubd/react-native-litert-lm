@@ -534,9 +534,9 @@ class LiteRTLMEngine {
                 "topK" to orgJson.optInt("topK", 40),
                 "topP" to orgJson.optDouble("topP", 0.9),
                 "maxOutputTokens" to orgJson.optInt("maxOutputTokens", 256),
-                "stopSequences" to orgJson.optJSONArray("stopSequences")?.let {
+                "stopSequences" to (orgJson.optJSONArray("stopSequences")?.let {
                     (0 until it.length()).map { idx -> it.optString(idx, "") }
-                } ?: emptyList<String>(),
+                } ?: emptyList()) as List<String>,
             )
         } catch (e: Exception) {
             Log.w(TAG, "Failed to parse config JSON, using defaults", e)
