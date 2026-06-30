@@ -35,6 +35,9 @@ export interface NativeLiteRTLM extends NativeModule {
     supported: boolean;
     androidVersion: number;
     availableBackends: string[];
+    socModel?: string;
+    socManufacturer?: string;
+    hardware?: string;
     reason?: string;
   }>;
 

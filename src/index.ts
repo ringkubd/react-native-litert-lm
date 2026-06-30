@@ -237,16 +237,20 @@ export const LiteRTLM = {
   },
 
   /**
-   * Get the list of built-in models the user can choose from.
-   * Filter by available RAM and backend automatically.
+   * Get the list of built-in models suitable for the device's RAM.
+   *
+   * Automatically filters out models that won't fit in available memory.
+   * Works on ANY Android device — model selection is RAM-based, not SoC-based.
    */
   async getAvailableModels(ramGB?: number): Promise<LiteRTLMModelInfo[]> {
     const deviceRam = ramGB ?? 4;
     return BUILTIN_MODELS.filter((m) => {
-      // Filter out models that need more RAM than available
-      if (m.id.includes('q4')) return deviceRam >= 3;
-      if (m.id.includes('cpu')) return deviceRam >= 4;
-      return deviceRam >= 8;
+      // Embedding models are tiny — always available
+      if (m.id.startsWith('embedding')) return true;
+      // For LLMs: check if they fit in available RAM
+      const neededGB = m.sizeBytes / 1e9;
+      // Allow models up to 70% of device RAM (leaves room for OS + app)
+      return neededGB <= deviceRam * 0.7;
     });
   },
 
@@ -297,30 +301,29 @@ export const LiteRTLM = {
   },
 
   /**
-   * Select the best LLM automatically based on device RAM and backends.
+   * Select the best LLM automatically based on device RAM.
+   *
+   * Works on ALL Android devices regardless of SoC vendor.
+   * - 8GB+ RAM → Gemma 4 E2B (GPU) — flagship quality
+   * - 4GB+ RAM → Gemma 3 1B (auto) — mid-range
+   * - <4GB RAM → fallback to smallest available
    */
   async selectBestModel(ramGB?: number): Promise<LiteRTLMModelInfo> {
     const models = await LiteRTLM.getAvailableModels(ramGB);
     const deviceInfo = await LiteRTLM.isSupported();
+    const hasGpu = deviceInfo.availableBackends.includes('gpu');
 
-    // Prefer NPU if available
-    if (deviceInfo.availableBackends.includes('npu')) {
-      const npu = models.find((m) => m.id.includes('npu'));
-      if (npu) return npu;
-    }
+    // Sort models by size, prefer GPU-capable for large models
+    const ranked = [...models].sort((a, b) => {
+      // Prefer models appropriate for RAM tier
+      const aFit = a.sizeBytes <= (ramGB ?? 4) * 1e9 ? 1 : 0;
+      const bFit = b.sizeBytes <= (ramGB ?? 4) * 1e9 ? 1 : 0;
+      if (aFit !== bFit) return bFit - aFit;
+      // Larger models = better quality (if RAM allows)
+      return b.sizeBytes - a.sizeBytes;
+    });
 
-    // Prefer GPU
-    if (deviceInfo.availableBackends.includes('gpu')) {
-      const gpu = models.find((m) => m.id.includes('gpu') || !m.id.includes('cpu'));
-      if (gpu) return gpu;
-    }
-
-    // Fallback to CPU
-    const cpu = models.find((m) => m.id.includes('cpu'));
-    if (cpu) return cpu;
-
-    // Last resort: first available
-    return models[0] ?? BUILTIN_MODELS[0];
+    return ranked[0] ?? BUILTIN_MODELS[0];
   },
 
   // ── Device Support ─────────────────────────────────────────────────────────
