@@ -7,7 +7,7 @@
   "files": [
     "src/",
     "android/",
-    "plugin/",
+    "app.plugin.js",
     "!example/",
     "!.github/"
   ],
