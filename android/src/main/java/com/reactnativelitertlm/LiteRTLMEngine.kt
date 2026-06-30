@@ -236,6 +236,9 @@ class LiteRTLMEngine {
             "supported" to supported,
             "androidVersion" to sdkInt,
             "availableBackends" to backends,
+            "socModel" to Build.SOC_MODEL,
+            "socManufacturer" to Build.MANUFACTURER,
+            "hardware" to Build.HARDWARE,
             "reason" to if (supported) "" else "Android SDK $sdkInt is below minimum 26.",
         )
     }

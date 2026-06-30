@@ -63,6 +63,7 @@ export type {
 
 export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
   // ── Embedding (Personalization / RAG) ───────────────────────────────
+  // Generic model works on ALL devices (CPU/GPU). Auto-detects NPU variant at runtime.
   {
     name: 'EmbeddingGemma 300M',
     id: 'embeddinggemma-300m',
@@ -71,15 +72,6 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     maxTokens: 512,
     backend: 'auto',
     description: '768-dim text embeddings for personalization, RAG, and semantic search. Works on all devices.',
-  },
-  {
-    name: 'EmbeddingGemma 300M (Snapdragon 8 Gen 3)',
-    id: 'embeddinggemma-300m-sm8650',
-    url: 'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq512_mixed-precision.qualcomm.sm8650.tflite',
-    sizeBytes: 150_000_000,
-    maxTokens: 512,
-    backend: 'npu',
-    description: 'NPU-optimized for Snapdragon 8 Gen 3 (SM8650). Honor 400 Pro / S24 Ultra.',
   },
 
   // ── Flagship: Gemma 4 ────────────────────────────────────────────────
@@ -259,7 +251,53 @@ export const LiteRTLM = {
   },
 
   /**
-   * Select the best model automatically based on device RAM and backends.
+   * Get the best embedding model URL for the current device.
+   *
+   * Auto-detects SoC vendor (Qualcomm, MediaTek, Exynos, Tensor) and
+   * picks the NPU-optimized variant if available, falling back to the
+   * generic model that works on ALL devices.
+   *
+   * @param socHint – optional SoC identifier (auto-detected from device if omitted).
+   */
+  async selectBestEmbeddingModel(socHint?: string): Promise<LiteRTLMModelInfo> {
+    const soc = (socHint ?? await getDeviceSoC()).toLowerCase();
+    const seqLen = 512;
+
+    // NPU-optimized variants
+    const npuMap: Record<string, string> = {
+      // Qualcomm Snapdragon
+      sm8550: 'qualcomm.sm8550',  // SD 8 Gen 2
+      sm8650: 'qualcomm.sm8650',  // SD 8 Gen 3
+      sm8750: 'qualcomm.sm8750',  // SD 8 Gen 4
+      sm8850: 'qualcomm.sm8850',  // SD 8 Gen 5
+      // MediaTek Dimensity
+      mt6991: 'mediatek.mt6991',
+      mt6993: 'mediatek.mt6993',
+      // Google Tensor
+      g5: 'google.tensor_g5',
+    };
+
+    for (const [chip, variant] of Object.entries(npuMap)) {
+      if (soc.includes(chip)) {
+        return {
+          name: `EmbeddingGemma 300M (${chip.toUpperCase()} NPU)`,
+          id: `embeddinggemma-300m-${chip}`,
+          url: `https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq${seqLen}_mixed-precision.${variant}.tflite`,
+          sizeBytes: 150_000_000,
+          maxTokens: seqLen,
+          backend: 'npu',
+          description: `NPU-optimized for ${chip}. Auto-detected for best performance.`,
+        };
+      }
+    }
+
+    // Fallback: generic model (works on ALL devices — Qualcomm, MediaTek,
+    // Exynos, Tensor, HiSilicon, UNISOC, and any other Android SoC)
+    return BUILTIN_MODELS.find((m) => m.id === 'embeddinggemma-300m')!;
+  },
+
+  /**
+   * Select the best LLM automatically based on device RAM and backends.
    */
   async selectBestModel(ramGB?: number): Promise<LiteRTLMModelInfo> {
     const models = await LiteRTLM.getAvailableModels(ramGB);
@@ -569,6 +607,25 @@ export class LiteRTLMModelHandle {
     const mod = assertModule();
     await mod.releaseModel(this.handle);
     _modelHandle = null;
+  }
+}
+
+// ─── SoC Detection ────────────────────────────────────────────────────────────
+
+/**
+ * Detect the device SoC (System-on-Chip) identifier.
+ *
+ * Reads `ro.soc.model` or `ro.board.platform` from the Android system
+ * properties via the native module. Falls back to an empty string.
+ */
+async function getDeviceSoC(): Promise<string> {
+  try {
+    const mod = assertModule();
+    // The native module can read the SoC model from Build.SOC_MODEL
+    const info = await mod.isSupported();
+    return (info as any).socModel ?? '';
+  } catch {
+    return '';
   }
 }
 
