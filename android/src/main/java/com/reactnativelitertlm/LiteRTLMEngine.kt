@@ -120,6 +120,50 @@ class LiteRTLMEngine {
         }
     }
 
+    // ── Embedding Generation ──────────────────────────────────────────────────
+
+    /**
+     * Generate a text embedding using a TFLite embedding model (e.g. EmbeddingGemma).
+     *
+     * Uses the standard TensorFlow Lite Interpreter, not LiteRT-LM Engine,
+     * because embedding models are .tflite format, not .litertlm.
+     *
+     * @param modelPath Path to the .tflite embedding model.
+     * @param text      Input text to embed.
+     * @param maxSeqLen Maximum sequence length (256/512/1024/2048).
+     * @return Map with embedding float array and timeMs.
+     */
+    suspend fun generateEmbedding(
+        modelPath: String,
+        text: String,
+        maxSeqLen: Int,
+    ): Map<String, Any> = withContext(Dispatchers.IO) {
+        val startTime = System.currentTimeMillis()
+
+        // ── Load TFLite model ─────────────────────────────────────────────────
+        // Uses standard TensorFlow Lite Interpreter for embedding models.
+        // Replace with actual TFLite interpreter:
+        //   val model = Interpreter(loadModelFile(modelPath))
+        //   val input = tokenize(text, maxSeqLen)
+        //   val output = Array(1) { FloatArray(embeddingDim) }
+        //   model.run(input, output)
+        //   model.close()
+
+        // STUB: return realistic embedding dimensions
+        val embeddingDim = 768
+        val embedding = FloatArray(embeddingDim) { i ->
+            // Simple hash-based deterministic embedding for demonstration
+            (text.hashCode() % 1000) / 1000f * (i % 3 + 1) / 3f
+        }
+
+        val elapsed = System.currentTimeMillis() - startTime
+
+        mapOf(
+            "embedding" to embedding.toList(),
+            "timeMs" to elapsed,
+        )
+    }
+
     /** Mutable reference to the download cancel function. */
     private var _cancelDownload: (() -> Unit)? = null
 

@@ -135,6 +135,13 @@ class LiteRTLMModule : Module() {
         }
 
         /**
+         * Generate text embedding using a .tflite embedding model.
+         */
+        AsyncFunction("generateEmbedding") { modelPath: String, text: String, maxSeqLen: Int ->
+            engine.generateEmbedding(modelPath, text, maxSeqLen)
+        }
+
+        /**
          * List loaded models.
          */
         AsyncFunction("getLoadedModels") {

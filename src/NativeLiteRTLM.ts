@@ -123,6 +123,23 @@ export interface NativeLiteRTLM extends NativeModule {
   countTokens(handle: number, text: string): Promise<{ tokenCount: number }>;
 
   /**
+   * Generate a text embedding vector using an embedding model (e.g. EmbeddingGemma).
+   *
+   * Embedding models convert text to a float vector that can be used for
+   * semantic search, personalization, and RAG.
+   *
+   * @param modelPath – path to the .tflite embedding model file.
+   * @param text      – input text to embed.
+   * @param maxSeqLen – maximum sequence length (256 / 512 / 1024 / 2048).
+   * @returns Float array embedding vector and timing.
+   */
+  generateEmbedding(
+    modelPath: string,
+    text: string,
+    maxSeqLen: number,
+  ): Promise<{ embedding: number[]; timeMs: number }>;
+
+  /**
    * List models that are currently loaded (for multi-model support).
    */
   getLoadedModels(): Promise<Array<{ handle: number; modelPath: string; backend: string }>>;

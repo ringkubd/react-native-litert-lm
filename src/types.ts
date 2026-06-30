@@ -152,6 +152,32 @@ export type LiteRTLMDownloadProgress = {
   progress: number;
 };
 
+/**
+ * Configuration for generating text embeddings.
+ * Embeddings convert text into a vector representation that can be used
+ * for semantic search, personalization, and RAG (Retrieval Augmented Generation).
+ */
+export type LiteRTLMEmbeddingConfig = {
+  /** Input text to embed (e.g. user query, transaction description). */
+  text: string;
+
+  /**
+   * Maximum sequence length for the embedding model.
+   * Use shorter lengths for faster inference.
+   * Options: 256, 512, 1024, 2048. Default: 512
+   */
+  maxSeqLength?: number;
+};
+
+/** Result of a text embedding operation. */
+export type LiteRTLMEmbeddingResult = {
+  /** Float array representing the text embedding vector (e.g. 768 or 1536 dimensions). */
+  embedding: number[];
+
+  /** Time taken for embedding in milliseconds. */
+  timeMs: number;
+};
+
 /** Configuration for downloading a model from a URL. */
 export type LiteRTLMDownloadConfig = {
   /** Source URL of the `.task` model file. */

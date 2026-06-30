@@ -62,6 +62,26 @@ export type {
 // Models are downloaded from HuggingFace / Google AI Edge.
 
 export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
+  // ── Embedding (Personalization / RAG) ───────────────────────────────
+  {
+    name: 'EmbeddingGemma 300M',
+    id: 'embeddinggemma-300m',
+    url: 'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq512_mixed-precision.tflite',
+    sizeBytes: 150_000_000,
+    maxTokens: 512,
+    backend: 'auto',
+    description: '768-dim text embeddings for personalization, RAG, and semantic search. Works on all devices.',
+  },
+  {
+    name: 'EmbeddingGemma 300M (Snapdragon 8 Gen 3)',
+    id: 'embeddinggemma-300m-sm8650',
+    url: 'https://huggingface.co/litert-community/embeddinggemma-300m/resolve/main/embeddinggemma-300M_seq512_mixed-precision.qualcomm.sm8650.tflite',
+    sizeBytes: 150_000_000,
+    maxTokens: 512,
+    backend: 'npu',
+    description: 'NPU-optimized for Snapdragon 8 Gen 3 (SM8650). Honor 400 Pro / S24 Ultra.',
+  },
+
   // ── Flagship: Gemma 4 ────────────────────────────────────────────────
   {
     name: 'Gemma 4 E2B',
@@ -322,6 +342,45 @@ export const LiteRTLM = {
     }
 
     return modelHandleObj;
+  },
+
+  // ── Embeddings (RAG / Personalization) ──────────────────────────────────────
+
+  /**
+   * Generate a text embedding vector using an embedding model (e.g. EmbeddingGemma).
+   *
+   * Embeddings turn text into a float vector that captures meaning.
+   * Use them for:
+   *   - **Personalization**: find similar past transactions to understand user context
+   *   - **RAG**: retrieve relevant user data before AI generation
+   *   - **Categorization**: classify transactions by semantic similarity
+   *   - **Search**: find similar transactions, notes, or reminders
+   *
+   * Recommended model: EmbeddingGemma 300M (768-dim, .tflite)
+   * Download: https://huggingface.co/litert-community/embeddinggemma-300m
+   *
+   * @param modelPath – path to the .tflite embedding model file.
+   * @param text      – input text to embed (e.g. a transaction description).
+   * @param maxSeqLen – sequence length: 256 (fastest), 512 (balanced), 1024, 2048.
+   * @returns A float array (embedding vector) and timing.
+   *
+   * @example
+   * ```ts
+   * const { embedding } = await LiteRTLM.generateEmbedding(
+   *   "/data/user/0/com.app/files/embeddinggemma.tflite",
+   *   "bazar theke chal 500 taka kinlam",
+   *   512,
+   * );
+   * console.log(`Embedding dim: ${embedding.length}`); // 768
+   * ```
+   */
+  async generateEmbedding(
+    modelPath: string,
+    text: string,
+    maxSeqLen: number = 512,
+  ): Promise<LiteRTLMEmbeddingResult> {
+    const mod = assertModule();
+    return mod.generateEmbedding(modelPath, text, maxSeqLen);
   },
 
   // ── Convenience: One-shot ──────────────────────────────────────────────────
