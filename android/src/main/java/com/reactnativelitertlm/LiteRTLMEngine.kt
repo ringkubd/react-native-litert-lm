@@ -1,8 +1,15 @@
 package com.reactnativelitertlm
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
+import com.google.ai.edge.litertlm.SamplerConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -37,8 +44,8 @@ class LiteRTLMEngine {
         val maxTokens: Int,
         val backend: String,
         val loadTimeMs: Long,
-        var model: Any? = null,          // LiteRT-LM model object
-        var interpreter: Any? = null,     // LiteRT interpreter handle
+        var engine: com.google.ai.edge.litertlm.Engine? = null,
+        var conversation: com.google.ai.edge.litertlm.Conversation? = null,
         var isLoaded: Boolean = false,
         var isGenerating: Boolean = false,
         var cancelled: Boolean = false,
@@ -132,7 +139,7 @@ class LiteRTLMEngine {
         if (state == null || !state.isLoaded) return@withContext
 
         try {
-            runLiteRtLmInference(state.interpreter, "Hello", mapOf("maxOutputTokens" to 5))
+            state.conversation?.sendMessage("Hi")
             state.warmedUp = true
             Log.i(TAG, "Warm-up complete for handle=$handle")
         } catch (e: Exception) {
@@ -150,11 +157,8 @@ class LiteRTLMEngine {
         val state = sessions[handle]
             ?: throw IllegalStateException("Model $handle not loaded")
 
-        // ── LiteRT-LM Tokenizer API ───────────────────────────────────────────
-        // Replace with actual LiteRT-LM tokenizer call:
-        //   val count = interpreter.tokenizer.countTokens(text)
-
-        // STUB: rough estimate (4 chars per token)
+        // Estimate: ~4 chars per token for most models
+        // LiteRT-LM doesn't expose direct tokenizer count in v0.13
         val count = (text.length / 4).coerceAtLeast(1)
 
         mapOf("tokenCount" to count)
@@ -230,18 +234,18 @@ class LiteRTLMEngine {
         Log.i(TAG, "Loading model: $modelPath (maxTokens=$maxTokens, backend=$backend, handle=$handle)")
 
         // ── LiteRT-LM Initialisation ─────────────────────────────────────────
-        // This is where the actual LiteRT-LM native API is called.
-        // The following is a template that maps to the real LiteRT-LM Java/Kotlin API.
-        //
-        // In production, replace `createLiteRtLmInterpreter()` with:
-        //   val options = LiteRtLmOptions.builder()
-        //       .setModelFilePath(modelPath)
-        //       .setMaxTokens(maxTokens)
-        //       .setBackend(resolveBackend(backend))
-        //       .build()
-        //   val interpreter = LiteRtLmInterpreter.create(options)
+        // Uses Google's official LiteRT-LM Kotlin API.
+        // https://github.com/google-ai-edge/LiteRT-LM
 
-        val interpreter = createLiteRtLmInterpreter(modelPath, maxTokens, backend)
+        val engineConfig = EngineConfig(
+            modelPath = modelPath,
+            backend = resolveBackend(backend),
+        )
+
+        val liteRtEngine = Engine(engineConfig)
+        liteRtEngine.initialize()
+        val conversation = liteRtEngine.createConversation()
+
         val loadTime = System.currentTimeMillis() - startTime
 
         val state = SessionState(
@@ -250,7 +254,8 @@ class LiteRTLMEngine {
             maxTokens = maxTokens,
             backend = backend,
             loadTimeMs = loadTime,
-            interpreter = interpreter,
+            engine = liteRtEngine,
+            conversation = conversation,
             isLoaded = true,
         )
 
@@ -291,23 +296,32 @@ class LiteRTLMEngine {
         val startTime = System.currentTimeMillis()
 
         // ── LiteRT-LM Inference ───────────────────────────────────────────────
-        // Replace with actual LiteRT-LM generate() call:
-        //   val result = interpreter.generate(prompt, generationConfig)
-        //   val text = result.text
-        //   val tokens = result.tokenCount
+        // Uses Conversation.sendMessage() for synchronous generation.
+        val samplerConfig = SamplerConfig(
+            topK = (config["topK"] as? Int) ?: 40,
+            topP = (config["topP"] as? Double) ?: 0.9,
+            temperature = (config["temperature"] as? Double) ?: 0.0,
+        )
 
-        val result = runLiteRtLmInference(state.interpreter, prompt, config)
+        // Create a temporary conversation for this generation
+        val conversation = state.conversation ?: state.engine?.createConversation()
+        if (conversation == null) throw IllegalStateException("No conversation available")
+
+        val response = conversation.sendMessage(prompt)
+        val text = response.text ?: ""
+        val tokenCount = text.length / 4
+
         val elapsed = System.currentTimeMillis() - startTime
 
         state.isGenerating = false
-        state.totalTokensGenerated += result.tokenCount
+        state.totalTokensGenerated += tokenCount
         state.totalGenerationTimeMs += elapsed
 
-        val tps = if (elapsed > 0) (result.tokenCount.toFloat() / elapsed * 1000) else 0f
+        val tps = if (elapsed > 0) (tokenCount.toFloat() / elapsed * 1000) else 0f
 
         mapOf(
-            "text" to result.text,
-            "tokenCount" to result.tokenCount,
+            "text" to text,
+            "tokenCount" to tokenCount,
             "timeMs" to elapsed,
             "tokensPerSecond" to tps,
         )
@@ -354,19 +368,25 @@ class LiteRTLMEngine {
 
         try {
             // ── LiteRT-LM Streaming Inference ──────────────────────────────────
-            // Replace with actual LiteRT-LM streaming call:
-            //   interpreter.generateStream(prompt, config) { token ->
-            //       if (state.cancelled) throw CancellationException()
-            //       sendToken(token)
-            //   }
+            // Uses Conversation.sendMessageAsync() for streaming with Flow.
+            val conversation = state.conversation ?: state.engine?.createConversation()
+            if (conversation == null) throw IllegalStateException("No conversation available")
 
-            val tokenList = simulateTokenGeneration(state.interpreter, prompt, config) { token ->
-                if (state.cancelled) throw kotlinx.coroutines.CancellationException("CANCELLED")
+            conversation.sendMessageAsync(prompt)
+                .catch { e ->
+                    if (state.cancelled) return@catch
+                    onError("generation_failed", e.message ?: "Stream error")
+                }
+                .collectLatest { message ->
+                    if (state.cancelled) throw kotlinx.coroutines.CancellationException("CANCELLED")
 
-                fullText.append(token)
-                tokenCount++
-                onToken(token)
-            }
+                    val token = message.text ?: ""
+                    if (token.isNotEmpty()) {
+                        fullText.append(token)
+                        tokenCount++
+                        onToken(token)
+                    }
+                }
 
             val elapsed = System.currentTimeMillis() - startTime
             state.isGenerating = false
@@ -416,10 +436,8 @@ class LiteRTLMEngine {
         val state = sessions.remove(handle) ?: return@withContext
 
         // ── LiteRT-LM Cleanup ─────────────────────────────────────────────────
-        // Replace with actual cleanup:
-        //   interpreter.close()
-
-        releaseLiteRtLmInterpreter(state.interpreter)
+        try { state.conversation?.close() } catch (_: Exception) {}
+        try { state.engine?.close() } catch (_: Exception) {}
 
         Log.i(TAG, "Released model handle=$handle")
     }
@@ -485,71 +503,13 @@ class LiteRTLMEngine {
         }
     }
 
-    /** Resolve backend string to LiteRT delegate. */
-    private fun resolveBackend(backend: String): String {
+    /** Resolve backend string to LiteRT-LM Backend. */
+    private fun resolveBackend(backend: String): Backend {
         return when (backend) {
-            "gpu" -> "gpu"
-            "npu" -> "npu"
-            "cpu" -> "cpu"
-            else -> "auto"
+            "gpu" -> Backend.GPU()
+            "npu" -> Backend.NPU()
+            "cpu" -> Backend.CPU()
+            else -> Backend.CPU() // auto → CPU (safe default)
         }
-    }
-
-    // ── LiteRT-LM Native API Stubs ────────────────────────────────────────────
-    //
-    // These methods are templates for the real LiteRT-LM API calls.
-    // Replace with actual Google AI Edge LiteRT library calls before release.
-    //
-    // The production implementation will use the following pattern:
-    //
-    //   import com.google.ai.edge.litert.lm.LiteRtLmInterpreter
-    //   import com.google.ai.edge.litert.lm.LiteRtLmOptions
-    //
-    //   val options = LiteRtLmOptions.builder()
-    //       .setModelFilePath(modelPath)
-    //       .setMaxTokens(maxTokens)
-    //       .build()
-    //
-    //   val interpreter = LiteRtLmInterpreter.create(options)
-    //   val result = interpreter.generate(prompt)
-    //   interpreter.close()
-
-    private data class InferenceResult(val text: String, val tokenCount: Int)
-
-    private fun createLiteRtLmInterpreter(
-        modelPath: String,
-        maxTokens: Int,
-        backend: String,
-    ): Any {
-        Log.i(TAG, "[LiteRT-LM] Creating interpreter: $modelPath")
-        // STUB: return a placeholder object
-        return Object()
-    }
-
-    private fun runLiteRtLmInference(
-        interpreter: Any?,
-        prompt: String,
-        config: Map<String, Any>,
-    ): InferenceResult {
-        val maxTokens = (config["maxOutputTokens"] as? Int) ?: 256
-        // STUB: simulate generation
-        val text = "STUB: LiteRT-LM inference for: ${prompt.take(50)}..."
-        return InferenceResult(text, text.length / 4)
-    }
-
-    private fun releaseLiteRtLmInterpreter(interpreter: Any?) {
-        Log.i(TAG, "[LiteRT-LM] Releasing interpreter")
-        // STUB: no-op
-    }
-
-    private fun simulateTokenGeneration(
-        interpreter: Any?,
-        prompt: String,
-        config: Map<String, Any>,
-        onToken: (String) -> Unit,
-    ): List<String> {
-        val tokens = listOf("Hello", " from", " LiteRT", "-LM", "!")
-        tokens.forEach { onToken(it) }
-        return tokens
     }
 }

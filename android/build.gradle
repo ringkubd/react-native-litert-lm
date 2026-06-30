@@ -35,19 +35,24 @@ android {
 }
 
 dependencies {
-    // React Native + Expo are provided by the host project
+    // React Native + Expo — provided by the host project
     compileOnly "com.facebook.react:react-android"
-    compileOnly "expolib_v1.com.facebook.react:react-native:+"
 
-    // LiteRT-LM — optional; engine has stub fallbacks when unavailable.
-    // Add the official dependency here when Google publishes the public artifact.
-    // See: https://ai.google.dev/edge/litert
-    // implementation "com.google.ai.edge.litert:litert-lm:1.0.0"
+    // LiteRT-LM — Google AI Edge on-device LLM runtime (Android)
+    // https://github.com/google-ai-edge/LiteRT-LM
+    // Available on Google Maven: https://maven.google.com/web/index.html#com.google.ai.edge.litertlm
+    implementation("com.google.ai.edge.litertlm:litertlm-android:latest.release")
 
-    // Coroutines for async inference (background thread)
+    // Coroutines for async inference on background threads
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
-
-    // Expo Modules Core — needed only for Expo autolinking
-    // Provided by the host project when using Expo
-    compileOnly "expomodules:expo-modules-core:+"
 }
+
+// Ensure Google Maven is in the project's repositories
+// Add to settings.gradle or root build.gradle:
+//   dependencyResolutionManagement {
+//     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+//     repositories {
+//       google()
+//       mavenCentral()
+//     }
+//   }
