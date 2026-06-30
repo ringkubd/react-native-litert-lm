@@ -355,7 +355,7 @@ class LiteRTLMEngine {
         if (conversation == null) throw IllegalStateException("No conversation available")
 
         val response = conversation.sendMessage(prompt)
-        val text = response.text ?: ""
+        val text = response.toString()
         val tokenCount = text.length / 4
 
         val elapsed = System.currentTimeMillis() - startTime
@@ -427,7 +427,7 @@ class LiteRTLMEngine {
                 .collectLatest { message ->
                     if (state.cancelled) throw kotlinx.coroutines.CancellationException("CANCELLED")
 
-                    val token = message.text ?: ""
+                    val token = message.toString()
                     if (token.isNotEmpty()) {
                         fullText.append(token)
                         tokenCount++
@@ -545,7 +545,7 @@ class LiteRTLMEngine {
                 "topK" to 40,
                 "topP" to 0.9,
                 "maxOutputTokens" to 256,
-                "stopSequences" to emptyList<String>(),
+                "stopSequences" to listOf<String>(),
             )
         }
     }
