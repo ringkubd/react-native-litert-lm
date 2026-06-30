@@ -1,14 +1,3 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.android.tools.build:gradle:8.7.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
-    }
-}
-
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -27,7 +16,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "0.2.0"
     }
 
     buildTypes {
@@ -48,20 +37,19 @@ android {
 }
 
 dependencies {
-    // Expo Modules Core (required for Expo autolinking)
-    implementation("expo.modules:expo-modules-core:2.2.0")
+    // Expo Modules Core — provided by the host app via autolinking
+    compileOnly "com.facebook.react:react-android"
 
-    // LiteRT-LM — Google AI Edge on-device LLM runtime
-    // This library handles model loading, tokenization, and inference.
+    // LiteRT-LM — optional; engine gracefully falls back to CPU stubs if unavailable.
+    // When Google publishes the official artifact, change to implementation.
     // See: https://ai.google.dev/edge/litert
-    implementation("com.google.ai.edge.litert:litert-lm:1.0.0")
+    compileOnly("com.google.ai.edge.litert:litert-lm:1.0.0") {
+        exclude group: 'com.google.ai.edge.litert'
+    }
 
-    // LiteRT GPU delegate — enables GPU acceleration (optional)
-    implementation("com.google.ai.edge.litert:litert-gpu:1.0.0")
-
-    // Coroutines for async inference (background thread)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    // Coroutines for async inference
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
 
     // React Native
-    implementation("com.facebook.react:react-android")
+    implementation "com.facebook.react:react-android"
 }
