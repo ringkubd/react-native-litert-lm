@@ -62,6 +62,27 @@ export type {
 // Models are downloaded from HuggingFace / Google AI Edge.
 
 export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
+  // ── Flagship: Gemma 4 ────────────────────────────────────────────────
+  {
+    name: 'Gemma 4 E2B',
+    id: 'gemma-4-e2b',
+    url: 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
+    sizeBytes: 2_583_000_000,
+    maxTokens: 8192,
+    backend: 'gpu',
+    description: 'Best quality, multi-modal (text+vision+audio). 1M+ downloads. Needs 8GB+ RAM.',
+  },
+  {
+    name: 'Gemma 4 E4B',
+    id: 'gemma-4-e4b',
+    url: 'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
+    sizeBytes: 4_200_000_000,
+    maxTokens: 8192,
+    backend: 'gpu',
+    description: 'Larger Gemma 4. Best reasoning. Needs 12GB+ RAM.',
+  },
+
+  // ── Mid-range: Gemma 3 + Qwen ───────────────────────────────────────
   {
     name: 'Gemma 3 1B',
     id: 'gemma-3-1b',
@@ -72,32 +93,36 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     description: 'Fast & efficient. Works on 4GB+ devices.',
   },
   {
-    name: 'Gemma 3N 3B',
-    id: 'gemma-3n-3b',
-    url: 'https://huggingface.co/litert-community/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4.litertlm',
-    sizeBytes: 1_800_000_000,
+    name: 'Llama 3.2 3B',
+    id: 'llama-3.2-3b',
+    url: 'https://huggingface.co/litert-community/Llama-3.2-3B/resolve/main/model.litertlm',
+    sizeBytes: 2_500_000_000,
     maxTokens: 8192,
     backend: 'gpu',
-    description: 'Best quality for extraction & reasoning. Needs 8GB+ RAM.',
+    description: 'Meta Llama 3.2. Strong reasoning. Needs 8GB+ RAM.',
   },
   {
-    name: 'Gemma 3N 3B (NPU)',
-    id: 'gemma-3n-3b-npu',
-    url: 'https://huggingface.co/litert-community/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4-npu.litertlm',
-    sizeBytes: 1_800_000_000,
-    maxTokens: 8192,
-    backend: 'npu',
-    description: 'NPU-optimized. Snapdragon 8 Gen 3 recommended.',
-  },
-  {
-    name: 'Gemma 3N 3B (CPU)',
-    id: 'gemma-3n-3b-cpu',
-    url: 'https://huggingface.co/litert-community/gemma-3n-E2B-it-litert-lm/resolve/main/gemma-3n-E2B-it-int4-cpu.litertlm',
-    sizeBytes: 1_800_000_000,
+    name: 'Llama 3.2 1B',
+    id: 'llama-3.2-1b',
+    url: 'https://huggingface.co/litert-community/Llama-3.2-1B/resolve/main/model.litertlm',
+    sizeBytes: 900_000_000,
     maxTokens: 4096,
-    backend: 'cpu',
-    description: 'CPU-optimized variant. Works on 6GB+ devices.',
+    backend: 'auto',
+    description: 'Lightweight Llama. Works on 4GB+ devices.',
   },
+
+  // ── Lightweight: Qwen 3.5 ───────────────────────────────────────────
+  // Note: Once Qwen 3.5 .litertlm is published on HuggingFace litert-community,
+  // add it here. Until then, users can provide a custom model path.
+  // {
+  //   name: 'Qwen 3.5 1.5B',
+  //   id: 'qwen-3.5-1.5b',
+  //   url: 'https://huggingface.co/litert-community/Qwen3.5-1.5B/resolve/main/model.litertlm',
+  //   sizeBytes: 1_200_000_000,
+  //   maxTokens: 8192,
+  //   backend: 'auto',
+  //   description: 'Qwen 3.5 optimized for Bengali & English. Works on 4GB+ devices.',
+  // },
 ];
 
 const ERR = {
