@@ -31,28 +31,20 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Allow LiteRT-LM library compiled with newer Kotlin metadata
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
     }
 }
 
 dependencies {
-    // React Native + Expo — provided by the host project
-    compileOnly "com.facebook.react:react-android"
+    // React Native — provided by the host project via autolinking
+    implementation "com.facebook.react:react-android"
 
     // LiteRT-LM — Google AI Edge on-device LLM runtime (Android)
     // https://github.com/google-ai-edge/LiteRT-LM
-    // Available on Google Maven: https://maven.google.com/web/index.html#com.google.ai.edge.litertlm
+    // Available on Google Maven: com.google.ai.edge.litertlm:litertlm-android
     implementation("com.google.ai.edge.litertlm:litertlm-android:latest.release")
 
     // Coroutines for async inference on background threads
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
 }
-
-// Ensure Google Maven is in the project's repositories
-// Add to settings.gradle or root build.gradle:
-//   dependencyResolutionManagement {
-//     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-//     repositories {
-//       google()
-//       mavenCentral()
-//     }
-//   }

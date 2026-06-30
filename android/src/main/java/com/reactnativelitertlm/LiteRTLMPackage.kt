@@ -20,7 +20,7 @@ class LiteRTLMPackage : ReactPackage {
     override fun createNativeModules(
         reactContext: ReactApplicationContext,
     ): List<NativeModule> {
-        return listOf(LiteRTLMModule())
+        return listOf(LiteRTLMModule(reactContext))
     }
 
     override fun createViewManagers(

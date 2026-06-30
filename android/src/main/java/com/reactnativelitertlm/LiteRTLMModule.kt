@@ -1,172 +1,264 @@
 package com.reactnativelitertlm
 
 import android.util.Log
-import expo.modules.kotlin.Promise
-import expo.modules.kotlin.modules.Module
-import expo.modules.kotlin.modules.ModuleDefinition
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.WritableArray
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * LiteRTLMModule — Expo Module that bridges LiteRT-LM to JavaScript.
+ * LiteRTLMModule — React Native bridge for LiteRT-LM on-device LLM inference.
  *
- * This module is auto-linked by Expo when the package is installed.
- * It exposes async functions that run inference on a background thread
- * and emit events for streaming token output.
+ * Uses React Native's native module system (not Expo Modules API) for maximum
+ * compatibility with both Expo custom dev builds and React Native CLI projects.
  */
-class LiteRTLMModule : Module() {
+class LiteRTLMModule(reactContext: ReactApplicationContext) :
+    ReactContextBaseJavaModule(reactContext) {
 
     companion object {
         private const val TAG = "LiteRTLM"
-        private const val MODULE_NAME = "LiteRTLM"
+        const val NAME = "LiteRTLM"
     }
 
-    /** Core engine that wraps LiteRT-LM native calls. */
+    /** Core engine instance. */
     private val engine = LiteRTLMEngine()
 
-    // ── Module Definition ─────────────────────────────────────────────────────
+    /** Coroutine scope for background work. */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    override fun definition() = ModuleDefinition {
+    override fun getName(): String = NAME
 
-        Name(MODULE_NAME)
+    // ── Event Emitter ─────────────────────────────────────────────────────────
 
-        // ── Events ────────────────────────────────────────────────────────────
-        // Used by streaming generation to push tokens to JS.
+    private fun sendEvent(eventName: String, params: WritableMap?) {
+        reactApplicationContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit(eventName, params)
+    }
 
-        Events("onToken", "onComplete", "onError", "onDownloadProgress")
+    // ── Async Functions (run on IO dispatcher) ───────────────────────────────
 
-        // ── Async Functions ───────────────────────────────────────────────────
-
-        /**
-         * Check device support.
-         */
-        AsyncFunction("isSupported") {
-            engine.isSupported()
+    @ReactMethod
+    fun isSupported(promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.isSupported()
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("IS_SUPPORTED_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Load a .task model file.
-         *
-         * @param modelPath Absolute path to the model file.
-         * @param maxTokens Maximum context tokens.
-         * @param backend   Preferred backend: "auto", "cpu", "gpu", "npu".
-         * @return { handle: number, loadTimeMs: number }
-         */
-        AsyncFunction("loadModel") { modelPath: String, maxTokens: Int, backend: String ->
-            engine.loadModel(modelPath, maxTokens, backend)
+    @ReactMethod
+    fun loadModel(modelPath: String, maxTokens: Int, backend: String, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.loadModel(modelPath, maxTokens, backend)
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("LOAD_MODEL_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Generate text (non-streaming).
-         *
-         * @param handle    Model handle from loadModel.
-         * @param prompt    Input text.
-         * @param config    JSON string of generation params.
-         * @return { text, tokenCount, timeMs, tokensPerSecond }
-         */
-        AsyncFunction("generate") { handle: Int, prompt: String, config: String ->
-            engine.generate(handle, prompt, config)
+    @ReactMethod
+    fun generate(handle: Int, prompt: String, config: String, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.generate(handle, prompt, config)
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("GENERATE_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Start streaming generation.
-         *
-         * Tokens are dispatched via the "onToken" event.
-         * On completion, "onComplete" fires with the full result.
-         * On error, "onError" fires with the error details.
-         *
-         * @param handle    Model handle.
-         * @param prompt    Input text.
-         * @param config    JSON string of generation params.
-         */
-        AsyncFunction("startStreaming") { handle: Int, prompt: String, config: String ->
-            engine.startStreaming(
-                handle = handle,
-                prompt = prompt,
-                configJson = config,
-                onToken = { token ->
-                    sendEvent("onToken", mapOf("token" to token))
-                },
-                onComplete = { result ->
-                    sendEvent("onComplete", result)
-                },
-                onError = { code, message ->
-                    sendEvent("onError", mapOf("code" to code, "message" to message))
-                },
-            )
+    @ReactMethod
+    fun startStreaming(handle: Int, prompt: String, config: String, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                engine.startStreaming(
+                    handle = handle,
+                    prompt = prompt,
+                    configJson = config,
+                    onToken = { token ->
+                        sendEvent("onToken", Arguments.createMap().apply {
+                            putString("token", token)
+                        })
+                    },
+                    onComplete = { result ->
+                        sendEvent("onComplete", toWritableMap(result))
+                    },
+                    onError = { code, message ->
+                        sendEvent("onError", Arguments.createMap().apply {
+                            putString("code", code)
+                            putString("message", message)
+                        })
+                    },
+                )
+                promise.resolve(null)
+            } catch (e: Exception) {
+                promise.reject("STREAM_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Download a model file from a URL with progress events.
-         */
-        AsyncFunction("downloadModel") { url: String, destinationPath: String, expectedSizeBytes: Int ->
-            engine.downloadModel(
-                url = url,
-                destinationPath = destinationPath,
-                expectedSize = expectedSizeBytes.toLong(),
-                onProgress = { bytes, total, progress ->
-                    sendEvent("onDownloadProgress", mapOf(
-                        "bytesDownloaded" to bytes,
-                        "bytesTotal" to total,
-                        "progress" to progress,
-                    ))
-                },
-            )
+    @ReactMethod
+    fun cancelStreaming(handle: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                engine.cancelStreaming(handle)
+                promise.resolve(null)
+            } catch (e: Exception) {
+                promise.reject("CANCEL_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Cancel model download.
-         */
-        AsyncFunction("cancelDownload") {
-            engine.cancelDownload()
+    @ReactMethod
+    fun releaseModel(handle: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                engine.releaseModel(handle)
+                promise.resolve(null)
+            } catch (e: Exception) {
+                promise.reject("RELEASE_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Run warm-up inference to prime GPU/caches.
-         */
-        AsyncFunction("warmUp") { handle: Int ->
-            engine.warmUp(handle)
+    @ReactMethod
+    fun getPerfStats(handle: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.getPerfStats(handle)
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("PERF_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Count tokens in text.
-         */
-        AsyncFunction("countTokens") { handle: Int, text: String ->
-            engine.countTokens(handle, text)
+    @ReactMethod
+    fun downloadModel(url: String, destinationPath: String, expectedSizeBytes: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.downloadModel(
+                    url = url,
+                    destinationPath = destinationPath,
+                    expectedSize = expectedSizeBytes.toLong(),
+                    onProgress = { bytes, total, progress ->
+                        sendEvent("onDownloadProgress", Arguments.createMap().apply {
+                            putDouble("bytesDownloaded", bytes.toDouble())
+                            putDouble("bytesTotal", total.toDouble())
+                            putDouble("progress", progress.toDouble())
+                        })
+                    },
+                )
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("DOWNLOAD_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Generate text embedding using a .tflite embedding model.
-         */
-        AsyncFunction("generateEmbedding") { modelPath: String, text: String, maxSeqLen: Int ->
-            engine.generateEmbedding(modelPath, text, maxSeqLen)
+    @ReactMethod
+    fun cancelDownload(promise: Promise) {
+        engine.cancelDownload()
+        promise.resolve(null)
+    }
+
+    @ReactMethod
+    fun warmUp(handle: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                engine.warmUp(handle)
+                promise.resolve(null)
+            } catch (e: Exception) {
+                promise.reject("WARMUP_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * List loaded models.
-         */
-        AsyncFunction("getLoadedModels") {
-            engine.getLoadedModels()
+    @ReactMethod
+    fun countTokens(handle: Int, text: String, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.countTokens(handle, text)
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("TOKEN_COUNT_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Cancel streaming generation.
-         */
-        AsyncFunction("cancelStreaming") { handle: Int ->
-            engine.cancelStreaming(handle)
+    @ReactMethod
+    fun generateEmbedding(modelPath: String, text: String, maxSeqLen: Int, promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val result = engine.generateEmbedding(modelPath, text, maxSeqLen)
+                promise.resolve(toWritableMap(result))
+            } catch (e: Exception) {
+                promise.reject("EMBEDDING_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Release model from memory.
-         */
-        AsyncFunction("releaseModel") { handle: Int ->
-            engine.releaseModel(handle)
+    @ReactMethod
+    fun getLoadedModels(promise: Promise) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val models = engine.getLoadedModels()
+                promise.resolve(toWritableArray(models))
+            } catch (e: Exception) {
+                promise.reject("MODELS_ERROR", e.message, e)
+            }
         }
+    }
 
-        /**
-         * Get performance stats for a loaded model.
-         */
-        AsyncFunction("getPerfStats") { handle: Int ->
-            engine.getPerfStats(handle)
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private fun toWritableMap(map: Map<String, Any>): WritableMap {
+        return Arguments.createMap().apply {
+            for ((key, value) in map) {
+                when (value) {
+                    is String -> putString(key, value)
+                    is Int -> putInt(key, value)
+                    is Long -> putDouble(key, value.toDouble())
+                    is Float -> putDouble(key, value.toDouble())
+                    is Double -> putDouble(key, value)
+                    is Boolean -> putBoolean(key, value)
+                    is List<*> -> putArray(key, toWritableArray(value as List<Any>))
+                    else -> putString(key, value.toString())
+                }
+            }
+        }
+    }
+
+    private fun toWritableArray(list: List<Any>): WritableArray {
+        return Arguments.createArray().apply {
+            for (item in list) {
+                when (item) {
+                    is String -> pushString(item)
+                    is Int -> pushInt(item)
+                    is Long -> pushDouble(item.toDouble())
+                    is Float -> pushDouble(item.toDouble())
+                    is Double -> pushDouble(item)
+                    is Boolean -> pushBoolean(item)
+                    is Map<*, *> -> pushMap(toWritableMap(item as Map<String, Any>))
+                    is List<*> -> pushArray(toWritableArray(item as List<Any>))
+                    else -> pushString(item.toString())
+                }
+            }
         }
     }
 }
