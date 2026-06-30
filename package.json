@@ -14,8 +14,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint . --ext .ts,.tsx",
-    "test": "jest",
-    "prepare": "npm run build"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
