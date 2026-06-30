@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "LiteRT-LM Example",
+    "slug": "react-native-litert-lm-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#1a1a2e"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.reactnativelitertlm.example"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1a1a2e"
+      },
+      "package": "com.reactnativelitertlm.example",
+      "permissions": ["READ_EXTERNAL_STORAGE"]
+    },
+    "plugins": [
+      [
+        "react-native-litert-lm",
+        {
+          "enableGpu": true
+        }
+      ]
+    ]
+  }
+}

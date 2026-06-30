@@ -1,0 +1,72 @@
+{
+  "name": "react-native-litert-lm",
+  "version": "0.1.0",
+  "description": "React Native + Expo package for on-device LLM inference using Google LiteRT-LM on Android. Fully offline, no network required, GPU/NPU acceleration support.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "src/",
+    "android/",
+    "plugin/",
+    "!example/",
+    "!.github/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "jest",
+    "prepare": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ringkubd/react-native-litert-lm.git"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "litert",
+    "litert-lm",
+    "llm",
+    "on-device-ai",
+    "offline-llm",
+    "gemma",
+    "android",
+    "kotlin",
+    "machine-learning",
+    "text-generation",
+    "ai-edge"
+  ],
+  "author": "Arafat Hossain <ringkubd@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ringkubd/react-native-litert-lm/issues"
+  },
+  "homepage": "https://github.com/ringkubd/react-native-litert-lm#readme",
+  "peerDependencies": {
+    "expo": ">=52.0.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.76.0"
+  },
+  "dependencies": {
+    "expo-modules-core": ">=2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "@types/react": "^19.0.0"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "modules": ["react-native-litert-lm"]
+      }
+    },
+    "plugins": [
+      [
+        "./plugin/withLiteRTLM",
+        {
+          "enableGpu": true
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.7.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
+    }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+repositories {
+    google()
+    mavenCentral()
+    maven { url "https://storage.googleapis.com/download.tensorflow.org/tensorflow/lite" }
+}
+
+android {
+    namespace = "com.reactnativelitertlm"
+    compileSdk = 35
+
+    defaultConfig {
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "0.1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    // Expo Modules Core (required for Expo autolinking)
+    implementation("expo.modules:expo-modules-core:2.2.0")
+
+    // LiteRT-LM — Google AI Edge on-device LLM runtime
+    // This library handles model loading, tokenization, and inference.
+    // See: https://ai.google.dev/edge/litert
+    implementation("com.google.ai.edge.litert:litert-lm:1.0.0")
+
+    // LiteRT GPU delegate — enables GPU acceleration (optional)
+    implementation("com.google.ai.edge.litert:litert-gpu:1.0.0")
+
+    // Coroutines for async inference (background thread)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // React Native
+    implementation("com.facebook.react:react-android")
+}

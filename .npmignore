@@ -1,0 +1,11 @@
+example/
+.github/
+android/build/
+.gradle/
+*.gradle
+local.properties
+*.iml
+**/build/
+**/.gradle/
+.gitignore
+tsconfig.json
