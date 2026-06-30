@@ -1,11 +1,9 @@
 apply plugin: "com.android.library"
 apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: "com.facebook.react"
 
 repositories {
     google()
     mavenCentral()
-    maven { url "https://storage.googleapis.com/download.tensorflow.org/tensorflow/lite" }
 }
 
 android {
@@ -37,19 +35,19 @@ android {
 }
 
 dependencies {
-    // Expo Modules Core — provided by the host app via autolinking
+    // React Native + Expo are provided by the host project
     compileOnly "com.facebook.react:react-android"
+    compileOnly "expolib_v1.com.facebook.react:react-native:+"
 
-    // LiteRT-LM — optional; engine gracefully falls back to CPU stubs if unavailable.
-    // When Google publishes the official artifact, change to implementation.
+    // LiteRT-LM — optional; engine has stub fallbacks when unavailable.
+    // Add the official dependency here when Google publishes the public artifact.
     // See: https://ai.google.dev/edge/litert
-    compileOnly("com.google.ai.edge.litert:litert-lm:1.0.0") {
-        exclude group: 'com.google.ai.edge.litert'
-    }
+    // implementation "com.google.ai.edge.litert:litert-lm:1.0.0"
 
-    // Coroutines for async inference
+    // Coroutines for async inference (background thread)
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
 
-    // React Native
-    implementation "com.facebook.react:react-android"
+    // Expo Modules Core — needed only for Expo autolinking
+    // Provided by the host project when using Expo
+    compileOnly "expomodules:expo-modules-core:+"
 }
