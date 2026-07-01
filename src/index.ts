@@ -97,8 +97,6 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
 ];
 
 const ERR = {
-
-const ERR = {
   MODULE_NOT_FOUND: 'native_module_not_found',
   MODEL_NOT_LOADED: 'model_not_loaded',
   GENERATION_FAILED: 'generation_failed',
