@@ -533,23 +533,30 @@ export class LiteRTLMModelHandle {
     }
 
     // Subscribe to native events using RN DeviceEventEmitter
+    const cleanup = () => eventHandlers.forEach((h) => h.remove());
     const eventHandlers = [
       DeviceEventEmitter.addListener(EVENT_ON_TOKEN, (data: any) => {
         if (!cancelled) handlers.onToken?.(data.token ?? '');
       }),
       DeviceEventEmitter.addListener(EVENT_ON_COMPLETE, (data: any) => {
-        if (!cancelled) handlers.onComplete?.({
-          text: data.text ?? '',
-          tokenCount: data.tokenCount ?? 0,
-          timeMs: data.timeMs ?? 0,
-          tokensPerSecond: data.tokensPerSecond ?? 0,
-        });
+        if (!cancelled) {
+          handlers.onComplete?.({
+            text: data.text ?? '',
+            tokenCount: data.tokenCount ?? 0,
+            timeMs: data.timeMs ?? 0,
+            tokensPerSecond: data.tokensPerSecond ?? 0,
+          });
+          cleanup();
+        }
       }),
       DeviceEventEmitter.addListener(EVENT_ON_ERROR, (data: any) => {
-        if (!cancelled) handlers.onError?.({
-          message: data.message ?? 'Unknown error',
-          code: data.code ?? ERR.GENERATION_FAILED,
-        });
+        if (!cancelled) {
+          handlers.onError?.({
+            message: data.message ?? 'Unknown error',
+            code: data.code ?? ERR.GENERATION_FAILED,
+          });
+          cleanup();
+        }
       }),
     ];
 
@@ -567,7 +574,7 @@ export class LiteRTLMModelHandle {
       cancel: () => {
         cancelled = true;
         mod.cancelStreaming(this.handle).catch(() => {});
-        eventHandlers.forEach((h) => h.remove());
+        cleanup();
       },
     };
   }
