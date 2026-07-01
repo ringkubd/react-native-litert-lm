@@ -44,7 +44,7 @@ export interface NativeLiteRTLM extends NativeModule {
     timeMs: number;
     tokensPerSecond: number;
   }>;
-  startStreaming(handle: number, prompt: string, config: string): Promise<void>;
+  startStreaming(handle: number, prompt: string, systemPrompt: string, config: string): Promise<void>;
   cancelStreaming(handle: number): Promise<void>;
   releaseModel(handle: number): Promise<void>;
   getPerfStats(handle: number): Promise<{

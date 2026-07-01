@@ -42,8 +42,15 @@ export type LiteRTLMModelConfig = {
 
 /** Configuration for a single text-generation call. */
 export type LiteRTLMGenerationConfig = {
-  /** The input prompt text. */
+  /** The input prompt text (user message). */
   prompt: string;
+
+  /**
+   * System prompt / instruction that sets the model's behavior.
+   * Passed to LiteRT-LM ConversationConfig as systemInstruction.
+   * When set, the engine creates a new conversation with this instruction.
+   */
+  systemPrompt?: string;
 
   /**
    * Sampling temperature (0.0–1.0).

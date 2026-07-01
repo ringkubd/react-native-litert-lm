@@ -83,12 +83,13 @@ class LiteRTLMModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun startStreaming(handle: Int, prompt: String, config: String, promise: Promise) {
+    fun startStreaming(handle: Int, prompt: String, systemPrompt: String, config: String, promise: Promise) {
         scope.launch(Dispatchers.IO) {
             try {
                 engine.startStreaming(
                     handle = handle,
                     prompt = prompt,
+                    systemPrompt = systemPrompt,
                     configJson = config,
                     onToken = { token ->
                         sendEvent("onToken", Arguments.createMap().apply {

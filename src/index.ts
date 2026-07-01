@@ -560,9 +560,11 @@ export class LiteRTLMModelHandle {
       }),
     ];
 
-    // Start generation on the native side
+    // Start generation on the native side — pass system prompt separately
+    const genPrompt = config.prompt;
+    const genSystem = config.systemPrompt ?? '';
     mod
-      .startStreaming(this.handle, config.prompt, serializeConfig(config))
+      .startStreaming(this.handle, genPrompt, genSystem, serializeConfig(config))
       .catch((err: any) => {
         handlers.onError?.({
           message: err?.message ?? 'Failed to start streaming',

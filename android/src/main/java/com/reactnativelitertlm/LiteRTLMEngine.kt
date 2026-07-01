@@ -389,6 +389,7 @@ class LiteRTLMEngine {
     suspend fun startStreaming(
         handle: Int,
         prompt: String,
+        systemPrompt: String,
         configJson: String,
         onToken: (String) -> Unit,
         onComplete: (Map<String, Any>) -> Unit,
@@ -415,10 +416,20 @@ class LiteRTLMEngine {
 
         try {
             // ── LiteRT-LM Streaming Inference ──────────────────────────────────
-            // Uses Conversation.sendMessageAsync() for streaming with Flow.
-            val conversation = state.conversation ?: state.engine?.createConversation()
+            // Uses sendMessageAsync with proper Conversation template.
+            // Create conversation with system instruction so the model understands its role.
+            var conversation = state.conversation
+            if (conversation == null && systemPrompt.isNotEmpty()) {
+                val convConfig = com.google.ai.edge.litertlm.ConversationConfig(
+                    systemInstruction = com.google.ai.edge.litertlm.Contents.of(systemPrompt),
+                )
+                conversation = state.engine?.createConversation(convConfig)
+                state.conversation = conversation
+            }
+            conversation = conversation ?: state.conversation ?: state.engine?.createConversation()
             if (conversation == null) throw IllegalStateException("No conversation available")
 
+            // Send just the user message — LiteRT-LM handles chat template internally
             conversation.sendMessageAsync(prompt)
                 .catch { e ->
                     if (state.cancelled) return@catch
