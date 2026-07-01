@@ -62,7 +62,6 @@ export type {
 
 export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
   // ── Embedding (Personalization / RAG) ───────────────────────────────
-  // Generic model works on ALL devices (CPU/GPU). Auto-detects NPU variant at runtime.
   {
     name: 'EmbeddingGemma 300M',
     id: 'embeddinggemma-300m',
@@ -70,29 +69,18 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     sizeBytes: 150_000_000,
     maxTokens: 512,
     backend: 'auto',
-    description: '768-dim text embeddings for personalization, RAG, and semantic search.',
+    description: '768-dim embeddings for personalization & semantic search.',
   },
 
-  // ── Lightweight: Gemma 3 1B (compatible with litertlm v0.13) ────────
+  // ── Lightweight: SmolLM2 135M (open-access, Apache-2.0) ────────────
   {
-    name: 'Gemma 3 1B',
-    id: 'gemma-3-1b',
-    url: 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it.litertlm',
-    sizeBytes: 700_000_000,
-    maxTokens: 8192,
+    name: 'SmolLM2 135M',
+    id: 'smollm2-135m',
+    url: 'https://huggingface.co/litert-community/SmolLM2-135M-Instruct/resolve/main/SmolLM2_135M_Instruct.litertlm',
+    sizeBytes: 143_000_000,
+    maxTokens: 2048,
     backend: 'auto',
-    description: 'Fast & efficient. Works on 4GB+ devices.',
-  },
-
-  // ── Mid-range: Llama 3.2 1B ─────────────────────────────────────────
-  {
-    name: 'Llama 3.2 1B',
-    id: 'llama-3.2-1b',
-    url: 'https://huggingface.co/litert-community/Llama-3.2-1B/resolve/main/model.litertlm',
-    sizeBytes: 900_000_000,
-    maxTokens: 8192,
-    backend: 'auto',
-    description: 'Lightweight Llama. Works on 4GB+ devices.',
+    description: 'Smallest, fastest. Apache-2.0 license. Works on all devices.',
   },
 ];
 
