@@ -23,6 +23,7 @@
  * @module react-native-litert-lm
  */
 
+import { DeviceEventEmitter } from 'react-native';
 import { NativeModule, type NativeLiteRTLM } from './NativeLiteRTLM';
 import type {
   LiteRTLMModelConfig,
@@ -198,21 +199,18 @@ export const LiteRTLM = {
   ): Promise<string> {
     const mod = assertModule();
 
-    // Subscribe to progress events from native side
-    let subscription: any = null;
-    if (onProgress && (mod as any).addEventEmitter) {
-      subscription = (mod as any).addEventEmitter(
-        (eventName: string, data: any) => {
-          if (eventName === 'onDownloadProgress' && data) {
+    // Subscribe to download progress events
+    const progressSub = onProgress
+      ? DeviceEventEmitter.addListener('onDownloadProgress', (data: any) => {
+          if (data) {
             onProgress({
               bytesDownloaded: data.bytesDownloaded ?? 0,
               bytesTotal: data.bytesTotal ?? 1,
               progress: data.progress ?? 0,
             });
           }
-        },
-      );
-    }
+        })
+      : null;
 
     try {
       const { filePath } = await mod.downloadModel(
@@ -222,7 +220,7 @@ export const LiteRTLM = {
       );
       return filePath;
     } finally {
-      subscription?.remove();
+      progressSub?.remove();
     }
   },
 
@@ -534,30 +532,26 @@ export class LiteRTLMModelHandle {
       throw err;
     }
 
-    // Subscribe to native events
-    const subscription = (mod as any).addEventEmitter
-      ? (mod as any).addEventEmitter(
-          (eventName: string, data: any) => {
-            if (cancelled) return;
-
-            if (eventName === EVENT_ON_TOKEN) {
-              handlers.onToken?.(data.token ?? '');
-            } else if (eventName === EVENT_ON_COMPLETE) {
-              handlers.onComplete?.({
-                text: data.text ?? '',
-                tokenCount: data.tokenCount ?? 0,
-                timeMs: data.timeMs ?? 0,
-                tokensPerSecond: data.tokensPerSecond ?? 0,
-              });
-            } else if (eventName === EVENT_ON_ERROR) {
-              handlers.onError?.({
-                message: data.message ?? 'Unknown error',
-                code: data.code ?? ERR.GENERATION_FAILED,
-              });
-            }
-          },
-        )
-      : null;
+    // Subscribe to native events using RN DeviceEventEmitter
+    const eventHandlers = [
+      DeviceEventEmitter.addListener(EVENT_ON_TOKEN, (data: any) => {
+        if (!cancelled) handlers.onToken?.(data.token ?? '');
+      }),
+      DeviceEventEmitter.addListener(EVENT_ON_COMPLETE, (data: any) => {
+        if (!cancelled) handlers.onComplete?.({
+          text: data.text ?? '',
+          tokenCount: data.tokenCount ?? 0,
+          timeMs: data.timeMs ?? 0,
+          tokensPerSecond: data.tokensPerSecond ?? 0,
+        });
+      }),
+      DeviceEventEmitter.addListener(EVENT_ON_ERROR, (data: any) => {
+        if (!cancelled) handlers.onError?.({
+          message: data.message ?? 'Unknown error',
+          code: data.code ?? ERR.GENERATION_FAILED,
+        });
+      }),
+    ];
 
     // Start generation on the native side
     mod
@@ -573,7 +567,7 @@ export class LiteRTLMModelHandle {
       cancel: () => {
         cancelled = true;
         mod.cancelStreaming(this.handle).catch(() => {});
-        subscription?.remove();
+        eventHandlers.forEach((h) => h.remove());
       },
     };
   }
