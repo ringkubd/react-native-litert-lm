@@ -424,14 +424,23 @@ class LiteRTLMEngine {
                     if (state.cancelled) return@catch
                     onError("generation_failed", e.message ?: "Stream error")
                 }
-                .collectLatest { message ->
+                .collect { message ->
                     if (state.cancelled) throw kotlinx.coroutines.CancellationException("CANCELLED")
 
-                    val token = message.toString()
-                    if (token.isNotEmpty()) {
-                        fullText.append(token)
-                        tokenCount++
-                        onToken(token)
+                    val text = message.toString()
+                    if (text.isNotEmpty()) {
+                        // sendMessageAsync Flow emits the FULL text so far each time.
+                        // We keep the latest full text and emit incremental diffs.
+                        if (text.length > fullText.length) {
+                            val delta = text.substring(fullText.length)
+                            fullText.append(delta)
+                            tokenCount++
+                            onToken(delta)
+                        } else if (fullText.isEmpty()) {
+                            fullText.append(text)
+                            tokenCount++
+                            onToken(text)
+                        }
                     }
                 }
 
