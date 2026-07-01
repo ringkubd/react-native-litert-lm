@@ -438,20 +438,15 @@ class LiteRTLMEngine {
                 .collect { message ->
                     if (state.cancelled) throw kotlinx.coroutines.CancellationException("CANCELLED")
 
+                    // message.toString() gives the FULL text so far (with proper spacing).
+                    // Send the full text each time — JS side will handle display.
                     val text = message.toString()
-                    if (text.isNotEmpty()) {
-                        // sendMessageAsync Flow emits the FULL text so far each time.
-                        // We keep the latest full text and emit incremental diffs.
-                        if (text.length > fullText.length) {
-                            val delta = text.substring(fullText.length)
-                            fullText.append(delta)
-                            tokenCount++
-                            onToken(delta)
-                        } else if (fullText.isEmpty()) {
-                            fullText.append(text)
-                            tokenCount++
-                            onToken(text)
-                        }
+                    if (text.isNotEmpty() && text != fullText.toString()) {
+                        fullText.clear()
+                        fullText.append(text)
+                        tokenCount++
+                        // Send full text — JS replaces previous text
+                        onToken(text)
                     }
                 }
 
