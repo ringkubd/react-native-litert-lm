@@ -70,30 +70,10 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     sizeBytes: 150_000_000,
     maxTokens: 512,
     backend: 'auto',
-    description: '768-dim text embeddings for personalization, RAG, and semantic search. Works on all devices.',
+    description: '768-dim text embeddings for personalization, RAG, and semantic search.',
   },
 
-  // ── Flagship: Gemma 4 ────────────────────────────────────────────────
-  {
-    name: 'Gemma 4 E2B',
-    id: 'gemma-4-e2b',
-    url: 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm',
-    sizeBytes: 2_583_000_000,
-    maxTokens: 8192,
-    backend: 'gpu',
-    description: 'Best quality, multi-modal (text+vision+audio). 1M+ downloads. Needs 8GB+ RAM.',
-  },
-  {
-    name: 'Gemma 4 E4B',
-    id: 'gemma-4-e4b',
-    url: 'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm',
-    sizeBytes: 4_200_000_000,
-    maxTokens: 8192,
-    backend: 'gpu',
-    description: 'Larger Gemma 4. Best reasoning. Needs 12GB+ RAM.',
-  },
-
-  // ── Mid-range: Gemma 3 + Qwen ───────────────────────────────────────
+  // ── Lightweight: Gemma 3 1B (compatible with litertlm v0.13) ────────
   {
     name: 'Gemma 3 1B',
     id: 'gemma-3-1b',
@@ -103,12 +83,18 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     backend: 'auto',
     description: 'Fast & efficient. Works on 4GB+ devices.',
   },
+
+  // ── Mid-range: Llama 3.2 1B ─────────────────────────────────────────
   {
-    name: 'Llama 3.2 3B',
-    id: 'llama-3.2-3b',
-    url: 'https://huggingface.co/litert-community/Llama-3.2-3B/resolve/main/model.litertlm',
-    sizeBytes: 2_500_000_000,
+    name: 'Llama 3.2 1B',
+    id: 'llama-3.2-1b',
+    url: 'https://huggingface.co/litert-community/Llama-3.2-1B/resolve/main/model.litertlm',
+    sizeBytes: 900_000_000,
     maxTokens: 8192,
+    backend: 'auto',
+    description: 'Lightweight Llama. Works on 4GB+ devices.',
+  },
+];
     backend: 'gpu',
     description: 'Meta Llama 3.2. Strong reasoning. Needs 8GB+ RAM.',
   },
