@@ -95,32 +95,8 @@ export const BUILTIN_MODELS: LiteRTLMModelInfo[] = [
     description: 'Lightweight Llama. Works on 4GB+ devices.',
   },
 ];
-    backend: 'gpu',
-    description: 'Meta Llama 3.2. Strong reasoning. Needs 8GB+ RAM.',
-  },
-  {
-    name: 'Llama 3.2 1B',
-    id: 'llama-3.2-1b',
-    url: 'https://huggingface.co/litert-community/Llama-3.2-1B/resolve/main/model.litertlm',
-    sizeBytes: 900_000_000,
-    maxTokens: 4096,
-    backend: 'auto',
-    description: 'Lightweight Llama. Works on 4GB+ devices.',
-  },
 
-  // ── Lightweight: Qwen 3.5 ───────────────────────────────────────────
-  // Note: Once Qwen 3.5 .litertlm is published on HuggingFace litert-community,
-  // add it here. Until then, users can provide a custom model path.
-  // {
-  //   name: 'Qwen 3.5 1.5B',
-  //   id: 'qwen-3.5-1.5b',
-  //   url: 'https://huggingface.co/litert-community/Qwen3.5-1.5B/resolve/main/model.litertlm',
-  //   sizeBytes: 1_200_000_000,
-  //   maxTokens: 8192,
-  //   backend: 'auto',
-  //   description: 'Qwen 3.5 optimized for Bengali & English. Works on 4GB+ devices.',
-  // },
-];
+const ERR = {
 
 const ERR = {
   MODULE_NOT_FOUND: 'native_module_not_found',
